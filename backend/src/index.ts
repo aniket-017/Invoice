@@ -8,9 +8,12 @@ import productsRouter from './routes/products.js';
 import customersRouter from './routes/customers.js';
 import invoicesRouter from './routes/invoices.js';
 import reportsRouter from './routes/reports.js';
+import dotenv from "dotenv";
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+
 const PORT = process.env.PORT || 1970;
 
 app.use(cors());

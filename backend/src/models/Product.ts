@@ -11,7 +11,6 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-productSchema.index({ barcode: 1 }, { unique: true });
 productSchema.index({ name: 'text' });
 
 export const Product = mongoose.model('Product', productSchema);

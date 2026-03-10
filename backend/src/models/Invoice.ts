@@ -27,6 +27,5 @@ const invoiceSchema = new mongoose.Schema(
 );
 
 invoiceSchema.index({ date: -1 });
-invoiceSchema.index({ invoiceNumber: 1 }, { unique: true });
 
 export const Invoice = mongoose.model('Invoice', invoiceSchema);
