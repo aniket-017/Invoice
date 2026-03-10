@@ -5,14 +5,14 @@ interface LayoutProps {
 
 export default function Layout({ sidebar, children }: LayoutProps) {
   return (
-    <div className="flex min-h-screen">
-      <aside className="no-print w-56 shrink-0 border-r border-slate-200 bg-white shadow-soft">
-        <div className="sticky top-0 py-4">
+    <div className="flex min-h-screen flex-col md:flex-row">
+      <aside className="no-print w-full shrink-0 border-b border-slate-200 bg-white shadow-soft md:w-56 md:border-b-0 md:border-r">
+        <div className="md:sticky md:top-0 py-4">
           <h1 className="px-4 text-lg font-bold text-primary-700">Barcode Billing</h1>
           {sidebar}
         </div>
       </aside>
-      <main className="min-w-0 flex-1 p-6 md:p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 sm:p-6 md:p-8">{children}</main>
     </div>
   );
 }

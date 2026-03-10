@@ -18,14 +18,14 @@ export default function App() {
   return (
     <Layout
       sidebar={
-        <nav className="flex flex-col gap-1 p-3">
+        <nav className="flex gap-1 p-3 overflow-x-auto md:flex-col">
           {nav.map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `rounded-xl px-4 py-3 font-medium transition-colors ${
+                `rounded-xl px-4 py-2 text-sm sm:text-base font-medium whitespace-nowrap transition-colors ${
                   isActive ? 'bg-primary-600 text-white shadow-soft' : 'text-slate-600 hover:bg-surface-100 hover:text-slate-900'
                 }`
               }
