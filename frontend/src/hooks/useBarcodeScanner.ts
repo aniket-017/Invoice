@@ -4,6 +4,12 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 const SCANNER_CONTAINER_ID = 'barcode-scanner-root';
 const SCAN_DEBOUNCE_MS = 1800;
 
+// Higher resolution video constraints help detect smaller / more distant codes
+const HIGH_RES_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  width: { min: 1024, ideal: 1920 },
+  height: { min: 576, ideal: 1080 },
+};
+
 /** 1D barcode formats + QR so camera scanning works for product barcodes */
 const BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.CODE_128,
@@ -47,8 +53,12 @@ export function useBarcodeScanner(onScan: (code: string) => void) {
         { facingMode: 'environment' },
         {
           fps: 10,
-          qrbox: undefined,
-          aspectRatio: 1.333,
+          // Limit the scan region to a square in the center so the
+          // library can focus its processing on a smaller area.
+          qrbox: { width: 250, height: 250 },
+          // Ask for higher‑resolution frames so smaller codes are readable.
+          // html5-qrcode forwards these to getUserMedia under the hood.
+          videoConstraints: HIGH_RES_VIDEO_CONSTRAINTS as any,
         },
         (decodedText) => {
           const code = decodedText?.trim();
