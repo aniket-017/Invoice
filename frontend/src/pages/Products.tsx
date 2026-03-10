@@ -233,43 +233,53 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold text-slate-800">Products</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Products</h2>
+          <p className="mt-1 text-sm text-slate-500">Manage items, print barcode / QR labels, and keep prices in sync.</p>
+        </div>
         <button type="button" onClick={openAdd} className="btn-primary px-4 py-2">
           Add product
         </button>
       </div>
 
       <div className="card">
-        <div className="mb-4 flex flex-wrap items-center gap-4">
-          <input
-            type="search"
-            placeholder="Search by name or barcode..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="input max-w-md"
-          />
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600">Label type:</span>
-            <select
-              value={labelType}
-              onChange={(e) => setLabelType(e.target.value as 'barcode' | 'qr')}
-              className="input py-1.5 text-sm"
-            >
-              <option value="barcode">Barcode</option>
-              <option value="qr">QR code</option>
-            </select>
+        <div className="mb-4 space-y-3 md:flex md:items-center md:justify-between md:space-y-0 md:gap-4">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+              Search
+            </label>
+            <input
+              type="search"
+              placeholder="Search by name or barcode..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="input w-full max-w-xl"
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => openPrintLabelsGrid()}
-            className="btn-primary px-4 py-2"
-          >
-            Print selected labels
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Label type</span>
+              <select
+                value={labelType}
+                onChange={(e) => setLabelType(e.target.value as 'barcode' | 'qr')}
+                className="input py-1.5 text-sm"
+              >
+                <option value="barcode">Barcode</option>
+                <option value="qr">QR code</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={() => openPrintLabelsGrid()}
+              className="btn-primary px-4 py-2 whitespace-nowrap"
+            >
+              Print selected labels
+            </button>
+          </div>
         </div>
         {loading ? (
-          <p className="text-slate-500">Loading…</p>
+          <div className="py-10 text-center text-slate-500 text-sm">Loading products…</div>
         ) : (
           <div className="table-wrap">
             <table>
@@ -297,20 +307,36 @@ export default function Products() {
                         max={999}
                         value={printQty[p._id] ?? 0}
                         onChange={(e) => setPrintQty((prev) => ({ ...prev, [p._id]: Math.max(0, parseInt(e.target.value, 10) || 0) }))}
-                        className="input w-16 py-1.5 text-center text-sm"
+                        className="input w-20 py-1.5 text-center text-sm"
                       />
                     </td>
-                    <td className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => openEdit(p)} className="btn-ghost text-sm">
+                    <td className="whitespace-nowrap text-right">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(p)}
+                        className="btn-ghost inline-flex items-center text-xs px-1"
+                      >
                         Edit
                       </button>
-                      <button type="button" onClick={() => openPrintLabel(p)} className="btn-ghost text-sm">
+                      <button
+                        type="button"
+                        onClick={() => openPrintLabel(p)}
+                        className="btn-ghost inline-flex items-center text-xs px-1"
+                      >
                         Print barcode
                       </button>
-                      <button type="button" onClick={() => openPrintQRLabel(p)} className="btn-ghost text-sm">
+                      <button
+                        type="button"
+                        onClick={() => openPrintQRLabel(p)}
+                        className="btn-ghost inline-flex items-center text-xs px-1"
+                      >
                         Print QR code
                       </button>
-                      <button type="button" onClick={() => deleteProduct(p._id)} className="btn-ghost text-red-600 text-sm">
+                      <button
+                        type="button"
+                        onClick={() => deleteProduct(p._id)}
+                        className="btn-ghost inline-flex items-center text-red-600 text-xs px-1"
+                      >
                         Delete
                       </button>
                     </td>
