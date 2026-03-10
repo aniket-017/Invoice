@@ -4,8 +4,10 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 const SCANNER_CONTAINER_ID = 'barcode-scanner-root';
 const SCAN_DEBOUNCE_MS = 1800;
 
-// Higher resolution video constraints help detect smaller / more distant codes
+// Higher resolution video constraints help detect smaller / more distant codes.
+// Also strongly prefer the back (environment) camera on mobile devices.
 const HIGH_RES_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  facingMode: { ideal: 'environment' },
   width: { min: 1024, ideal: 1920 },
   height: { min: 576, ideal: 1080 },
 };
