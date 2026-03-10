@@ -38,6 +38,7 @@ export function useBarcodeScanner(onScan: (code: string) => void) {
     }
     try {
       const scanner = new Html5Qrcode(SCANNER_CONTAINER_ID, {
+        verbose: false,
         formatsToSupport: BARCODE_FORMATS,
         useBarCodeDetectorIfSupported: false,
       });
