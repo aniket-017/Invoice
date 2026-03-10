@@ -1,0 +1,95 @@
+name: Node.js CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+    #   - name: Install root dependencies
+    #     run: npm ci
+
+    #   - name: Install backend & frontend dependencies
+    #     run: npm run postinstall
+
+    #   - name: Build backend & frontend
+    #     run: npm run build
+
+      # Only deploy from main branch
+      - name: Setup SSH
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        if: github.ref == 'refs/heads/main'
+        run: |
+          ssh admin@${{ secrets.SSH_HOST }} << 'EOF'
+            
+
+            echo "🔐 Starting deployment to remote server"
+           
+
+            if [ -f ~/Invoice/backend/.env ]; then
+             echo "📁 Backing up existing .env file"
+             cp ~/Invoice/backend/.env ~/.env.bak
+           fi
+
+           if [ -d ~/Invoice ]; then
+             echo "📂 Pulling latest changes from Git"
+             cd ~/Invoice
+             git reset --hard
+             git pull origin main
+           else
+             echo "📂 Cloning repository"
+             git clone https://github.com/aniket-017/Invoice.git ~/Invoice 
+             cd ~/Invoice 
+           fi
+
+           if [ -f ~/.env.bak ]; then
+             echo "♻️ Restoring .env from backup"
+             mv ~/.env.bak ~/Invoice/backend/.env
+           fi
+
+           echo "📦 Installing backend dependencies"
+           cd ~/Invoice/backend
+           npm install
+
+           cd ../frontend
+           echo "📦 Installing frontend dependencies"
+           npm install --force
+           echo "🛠️ Building frontend"
+           npm run build
+
+           cd ../backend
+           echo "🚀 Starting or restarting PM2 process"
+           if pm2 list | grep -q "Invoice"; then
+             echo "🔁 Restarting Invoice"
+             pm2 restart    
+           else
+             echo "▶️ Starting Invoice"
+             pm2 start npm --name "Invoice" -- run dev
+           fi
+
+           echo "📋 PM2 process list:"
+           pm2 list
+          EOF

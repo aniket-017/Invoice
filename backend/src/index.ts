@@ -10,7 +10,7 @@ import reportsRouter from './routes/reports.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 1970;
 const isProd = process.env.NODE_ENV === 'production';
 
 app.use(cors());
