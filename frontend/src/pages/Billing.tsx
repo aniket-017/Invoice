@@ -59,6 +59,17 @@ export default function Billing() {
   const tax = 0;
   const total = subtotal + tax;
 
+  const changeQuantity = (productId: string, delta: number) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.productId !== productId) return item;
+        const newQuantity = Math.max(1, item.quantity + delta);
+        if (newQuantity === item.quantity) return item;
+        return { ...item, quantity: newQuantity, amount: newQuantity * item.unitPrice };
+      }),
+    );
+  };
+
   const removeItem = (productId: string) => {
     setCart((prev) => prev.filter((x) => x.productId !== productId));
   };
@@ -163,7 +174,27 @@ export default function Billing() {
                   {cart.map((i) => (
                     <tr key={i.productId}>
                       <td>{i.productName}</td>
-                      <td className="text-right">{i.quantity}</td>
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => changeQuantity(i.productId, -1)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100"
+                            aria-label="Decrease quantity"
+                          >
+                            −
+                          </button>
+                          <span className="min-w-[2rem] text-center">{i.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => changeQuantity(i.productId, 1)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-primary-50 text-primary-700 hover:bg-primary-100"
+                            aria-label="Increase quantity"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
                       <td className="text-right">{i.unitPrice.toFixed(2)}</td>
                       <td className="text-right font-medium">{i.amount.toFixed(2)}</td>
                       <td>
