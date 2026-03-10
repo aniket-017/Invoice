@@ -4,12 +4,20 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 const SCANNER_CONTAINER_ID = 'barcode-scanner-root';
 const SCAN_DEBOUNCE_MS = 1800;
 
-// Higher resolution video constraints help detect smaller / more distant codes.
-// Also strongly prefer the back (environment) camera on mobile devices.
+// Higher resolution video constraints help detect smaller / more distant codes,
+// and strongly prefer the back (environment) camera on mobile devices.
+// Some properties (focusMode, zoom) are best‑effort and will be ignored on
+// browsers/devices that don't support them.
 const HIGH_RES_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
   facingMode: { ideal: 'environment' },
   width: { min: 1024, ideal: 1920 },
   height: { min: 576, ideal: 1080 },
+  advanced: [
+    // Try to keep the camera focused automatically
+    { focusMode: 'continuous' as any },
+    // Slight zoom so QR / barcodes occupy more pixels
+    { zoom: 2 as any },
+  ],
 };
 
 /** 1D barcode formats + QR so camera scanning works for product barcodes */
@@ -54,12 +62,12 @@ export function useBarcodeScanner(onScan: (code: string) => void) {
       await scanner.start(
         { facingMode: 'environment' },
         {
-          fps: 10,
-          // Limit the scan region to a square in the center so the
-          // library can focus its processing on a smaller area.
-          qrbox: { width: 250, height: 250 },
-          // Ask for higher‑resolution frames so smaller codes are readable.
-          // html5-qrcode forwards these to getUserMedia under the hood.
+          // Slightly lower fps can improve decoding reliability on some phones
+          fps: 8,
+          // Use full frame so the user doesn't need to perfectly center the code.
+          qrbox: undefined,
+          // Ask for higher‑resolution frames and better focus / zoom so smaller
+          // codes are readable. html5-qrcode forwards these to getUserMedia.
           videoConstraints: HIGH_RES_VIDEO_CONSTRAINTS as any,
         },
         (decodedText) => {
