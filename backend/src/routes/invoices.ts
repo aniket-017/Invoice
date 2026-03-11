@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { Invoice } from '../models/Invoice.js';
+import { generateInvoicePdf } from '../services/invoicePdf.js';
 import { authMiddleware, AuthPayload } from '../middleware/auth.js';
 
 const router = Router();
@@ -70,6 +71,13 @@ router.post('/', async (req, res) => {
     const populated = await Invoice.findById(invoice._id)
       .populate('customerId', 'name phone email address')
       .lean();
+    if (populated) {
+      try {
+        await generateInvoicePdf(populated as any);
+      } catch (pdfError) {
+        console.error('Failed to generate invoice PDF', pdfError);
+      }
+    }
     res.status(201).json(populated);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });

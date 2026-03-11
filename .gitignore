@@ -5,4 +5,5 @@ node_modules/*
 backend/.env
 frontend/dist
 frontend/build
+backend/invoices/*
 
