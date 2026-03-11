@@ -31,6 +31,12 @@ app.use('/api/reports', reportsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// Serve generated invoice PDFs publicly at /invoices/INV-*.pdf
+const invoicesDir = path.join(process.cwd(), 'invoices');
+if (fs.existsSync(invoicesDir)) {
+  app.use('/invoices', express.static(invoicesDir));
+}
+
 const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
