@@ -15,7 +15,10 @@ type CartItem = {
 export default function Billing() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState<string>('');
-  const [customers, setCustomers] = useState<{ _id: string; name: string }[]>([]);
+  const [customers, setCustomers] = useState<{ _id: string; name: string; phone: string; email: string; address: string }[]>([]);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerFormOpen, setCustomerFormOpen] = useState(false);
+  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', address: '' });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [loading, setLoading] = useState(false);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -50,9 +53,10 @@ export default function Billing() {
     }
   };
 
-  const loadCustomers = async () => {
-    const list = await api.customers.list();
+  const loadCustomers = async (query?: string) => {
+    const list = await api.customers.list(query || undefined);
     setCustomers(list);
+    return list;
   };
 
   const subtotal = cart.reduce((s, i) => s + i.amount, 0);
@@ -75,6 +79,33 @@ export default function Billing() {
   };
 
   const clearCart = () => setCart([]);
+
+  const openNewCustomer = () => {
+    setCustomerForm({ name: '', phone: '', email: '', address: '' });
+    setCustomerFormOpen(true);
+  };
+
+  const saveCustomer = async () => {
+    const name = customerForm.name.trim();
+    if (!name) {
+      setToast({ message: 'Customer name is required', type: 'error' });
+      return;
+    }
+    try {
+      const res = await api.customers.create({
+        name,
+        phone: customerForm.phone.trim() || undefined,
+        email: customerForm.email.trim() || undefined,
+        address: customerForm.address.trim() || undefined,
+      });
+      setToast({ message: 'Customer added', type: 'success' });
+      setCustomerFormOpen(false);
+      await loadCustomers(customerSearch);
+      setCustomerId(res._id);
+    } catch (e) {
+      setToast({ message: (e as Error).message, type: 'error' });
+    }
+  };
 
   const completeSale = async () => {
     if (cart.length === 0) {
@@ -133,23 +164,44 @@ export default function Billing() {
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        <div className="card">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="card space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold text-slate-700">Customer (optional)</h3>
-            <button type="button" onClick={loadCustomers} className="btn-ghost text-sm">
-              Load list
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => loadCustomers(customerSearch)} className="btn-ghost text-sm">
+                Load list
+              </button>
+              <button type="button" onClick={openNewCustomer} className="btn-secondary text-sm">
+                Add customer
+              </button>
+            </div>
           </div>
-          <select
-            value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
-            className="input"
-          >
-            <option value="">— None —</option>
-            {customers.map((c) => (
-              <option key={c._id} value={c._id}>{c.name}</option>
-            ))}
-          </select>
+          <div className="space-y-2">
+            <input
+              type="search"
+              placeholder="Search by name, phone, email..."
+              value={customerSearch}
+              onChange={async (e) => {
+                const value = e.target.value;
+                setCustomerSearch(value);
+                await loadCustomers(value);
+              }}
+              className="input text-sm"
+            />
+            <select
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+              className="input"
+            >
+              <option value="">— None —</option>
+              {customers.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                  {c.phone ? ` · ${c.phone}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -229,6 +281,49 @@ export default function Billing() {
           </>
         )}
       </div>
+
+      {customerFormOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" onClick={() => setCustomerFormOpen(false)}>
+          <div className="card w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-4 text-lg font-semibold">Add customer</h3>
+            <div className="space-y-3">
+              <input
+                className="input"
+                placeholder="Name"
+                value={customerForm.name}
+                onChange={(e) => setCustomerForm((f) => ({ ...f, name: e.target.value }))}
+              />
+              <input
+                className="input"
+                placeholder="Phone (optional)"
+                value={customerForm.phone}
+                onChange={(e) => setCustomerForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+              <input
+                className="input"
+                type="email"
+                placeholder="Email (optional)"
+                value={customerForm.email}
+                onChange={(e) => setCustomerForm((f) => ({ ...f, email: e.target.value }))}
+              />
+              <input
+                className="input"
+                placeholder="Address (optional)"
+                value={customerForm.address}
+                onChange={(e) => setCustomerForm((f) => ({ ...f, address: e.target.value }))}
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setCustomerFormOpen(false)} className="btn-secondary">
+                Cancel
+              </button>
+              <button type="button" onClick={saveCustomer} className="btn-primary">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <Toast
