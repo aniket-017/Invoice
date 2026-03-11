@@ -6,10 +6,10 @@ import Toast from '../components/Toast';
 
 type Product = { _id: string; barcode: string; name: string; price: number; unit: string; description?: string };
 
-// Labels per page in grid (3 columns x 4 rows)
-const LABELS_PER_PAGE = 12;
-const COLS = 3;
-const ROWS = 4;
+// Labels per page in grid (6 columns x 10 rows = 60 labels)
+const LABELS_PER_PAGE = 60;
+const COLS = 6;
+const ROWS = 10;
 
 export default function Products() {
   const [list, setList] = useState<Product[]>([]);
@@ -19,6 +19,8 @@ export default function Products() {
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ barcode: '', name: '', price: '', unit: 'pcs', description: '' });
+  const [labelDialog, setLabelDialog] = useState<{ product: Product; mode: 'barcode' | 'qr' } | null>(null);
+  const [labelDialogQty, setLabelDialogQty] = useState('60');
   const [printQty, setPrintQty] = useState<Record<string, number>>({});
   const [labelType, setLabelType] = useState<'barcode' | 'qr'>('barcode');
   const [qrPreviewUrl, setQrPreviewUrl] = useState<string | null>(null);
@@ -111,72 +113,20 @@ export default function Products() {
     return QRCode.toDataURL(text, { width: 180, margin: 1 });
   };
 
-  const openPrintLabel = (p: Product) => {
-    const dataUrl = getBarcodeDataUrl(p.barcode);
-    if (!dataUrl) return;
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(`
-      <!DOCTYPE html><html><head><title>Label - ${p.name.replace(/</g, '&lt;')}</title>
-      <style>
-        body { font-family: system-ui; padding: 16px; margin: 0; }
-        .label { width: 2in; border: 1px solid #ccc; padding: 8px; text-align: center; }
-        .label h3 { margin: 0 0 8px; font-size: 14px; word-break: break-word; }
-        .label img { max-width: 100%; height: auto; }
-        .label .price { font-weight: bold; margin-top: 4px; }
-      </style></head><body>
-      <div class="label">
-        <h3>${p.name.replace(/</g, '&lt;')}</h3>
-        <img src="${dataUrl}" alt="Barcode" />
-        <div class="price">₹${p.price.toFixed(2)}</div>
-      </div>
-      </body></html>
-    `);
-    win.document.close();
-    setTimeout(() => { win.print(); win.close(); }, 300);
-  };
-
-  const openPrintQRLabel = async (p: Product) => {
-    try {
-      const dataUrl = await getQRDataUrl(p.barcode);
-      const win = window.open('', '_blank');
-      if (!win) return;
-      win.document.write(`
-        <!DOCTYPE html><html><head><title>QR Label - ${p.name.replace(/</g, '&lt;')}</title>
-        <style>
-          body { font-family: system-ui; padding: 16px; margin: 0; }
-          .label { width: 2in; border: 1px solid #ccc; padding: 8px; text-align: center; }
-          .label h3 { margin: 0 0 8px; font-size: 14px; word-break: break-word; }
-          .label img { max-width: 100%; height: auto; }
-          .label .price { font-weight: bold; margin-top: 4px; }
-        </style></head><body>
-        <div class="label">
-          <h3>${p.name.replace(/</g, '&lt;')}</h3>
-          <img src="${dataUrl}" alt="QR Code" />
-          <div class="price">₹${p.price.toFixed(2)}</div>
-        </div>
-        </body></html>
-      `);
-      win.document.close();
-      setTimeout(() => { win.print(); win.close(); }, 300);
-    } catch {
-      setToast({ message: 'Failed to generate QR code', type: 'error' });
-    }
-  };
-
-  const openPrintLabelsGrid = async () => {
-    const items: { product: Product; qty: number }[] = list
-      .filter((p) => (printQty[p._id] || 0) > 0)
-      .map((p) => ({ product: p, qty: printQty[p._id] || 0 }));
+  const openLabelsGridForItems = async (
+    items: { product: Product; qty: number }[],
+    mode: 'barcode' | 'qr',
+    emptyMessage = 'Set quantity (≥1) for at least one product to print labels.',
+  ) => {
     if (items.length === 0) {
-      setToast({ message: 'Set quantity (≥1) for at least one product to print labels.', type: 'error' });
+      setToast({ message: emptyMessage, type: 'error' });
       return;
     }
     const canvas = barcodeCanvasRef.current;
-    if (labelType === 'barcode' && !canvas) return;
+    if (mode === 'barcode' && !canvas) return;
     const labels: { name: string; price: string; dataUrl: string }[] = [];
     for (const { product, qty } of items) {
-      const dataUrl = labelType === 'qr'
+      const dataUrl = mode === 'qr'
         ? await getQRDataUrl(product.barcode)
         : getBarcodeDataUrl(product.barcode);
       const name = product.name.replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -206,29 +156,61 @@ export default function Products() {
     win.document.write(`
       <!DOCTYPE html><html><head><meta charset="utf-8"><title>Labels</title>
       <style>
-        @page { size: A4; margin: 8mm; }
-        * { box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; margin: 0; padding: 8px; }
-        .page { page-break-after: always; }
-        .page:last-child { page-break-after: auto; }
-        .grid { display: grid; grid-template-columns: repeat(${COLS}, 1fr); grid-template-rows: repeat(${ROWS}, 1fr); gap: 0; width: 100%; min-height: 270mm; }
-        .label-cell { border: 1px dashed #333; padding: 6px; display: flex; align-items: center; justify-content: center; min-height: 65mm; }
-        .label-cell--empty { border-color: #ccc; }
-        .label-inner { text-align: center; width: 100%; padding: 4px; }
-        .label-name { font-size: 11px; font-weight: 600; margin-bottom: 4px; word-break: break-word; line-height: 1.2; }
-        .label-barcode { max-width: 100%; height: 38px; object-fit: contain; }
-        .label-price { font-size: 12px; font-weight: bold; margin-top: 2px; }
-        @media print {
-          body { padding: 0; background: white; }
-          .page { min-height: 0; }
-          .grid { min-height: 270mm; }
-        }
+      @page { size: A4; margin: 4mm; }
+      * { box-sizing: border-box; }
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 4mm; }
+      .page { page-break-after: always; }
+      .page:last-child { page-break-after: auto; }
+      .grid { display: grid; grid-template-columns: repeat(${COLS}, 1fr); grid-template-rows: repeat(${ROWS}, 1fr); gap: 0; width: 100%; min-height: 270mm; }
+      .label-cell { border: 1px dashed #333; padding: 3px; display: flex; align-items: center; justify-content: center; min-height: 24mm; }
+      .label-cell--empty { border-color: #ccc; }
+      .label-inner { text-align: center; width: 100%; padding: 1px; }
+      .label-name { font-size: 8px; font-weight: 600; margin-bottom: 1px; word-break: break-word; line-height: 1.1; }
+      .label-barcode { max-width: 100%; height: 24px; object-fit: contain; }
+      .label-price { font-size: 9px; font-weight: bold; margin-top: 1px; }
+      @media print {
+        body { padding: 0; background: white; }
+        .page { min-height: 0; }
+        .grid { min-height: 270mm; }
+      }
       </style></head><body>
       ${pages.map((p) => `<div class="page"><div class="grid">${labelsHtml(p)}</div></div>`).join('')}
       </body></html>
     `);
     win.document.close();
     setTimeout(() => { win.print(); win.close(); }, 400);
+  };
+
+  const openPrintLabelsGrid = async () => {
+    const items: { product: Product; qty: number }[] = list
+      .filter((p) => (printQty[p._id] || 0) > 0)
+      .map((p) => ({ product: p, qty: printQty[p._id] || 0 }));
+    await openLabelsGridForItems(items, labelType);
+  };
+
+  const openRowBarcodeGrid = async (p: Product) => {
+    setLabelDialog({ product: p, mode: 'barcode' });
+    setLabelDialogQty('60');
+  };
+
+  const openRowQrGrid = async (p: Product) => {
+    setLabelDialog({ product: p, mode: 'qr' });
+    setLabelDialogQty('60');
+  };
+
+  const confirmLabelDialog = async () => {
+    if (!labelDialog) return;
+    const qty = parseInt(labelDialogQty, 10);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setToast({ message: 'Please enter a valid quantity (≥ 1).', type: 'error' });
+      return;
+    }
+    await openLabelsGridForItems(
+      [{ product: labelDialog.product, qty }],
+      labelDialog.mode,
+      'Quantity must be at least 1.',
+    );
+    setLabelDialog(null);
   };
 
   return (
@@ -320,14 +302,14 @@ export default function Products() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => openPrintLabel(p)}
+                      onClick={() => openRowBarcodeGrid(p)}
                         className="btn-ghost inline-flex items-center text-xs px-1"
                       >
                         Print barcode
                       </button>
                       <button
                         type="button"
-                        onClick={() => openPrintQRLabel(p)}
+                      onClick={() => openRowQrGrid(p)}
                         className="btn-ghost inline-flex items-center text-xs px-1"
                       >
                         Print QR code
@@ -404,6 +386,53 @@ export default function Products() {
               </button>
               <button type="button" onClick={save} className="btn-primary">
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {labelDialog && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setLabelDialog(null)}
+        >
+          <div
+            className="card w-full max-w-xs shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-lg font-semibold">
+              Print {labelDialog.mode === 'barcode' ? 'barcode' : 'QR code'} labels
+            </h3>
+            <p className="mb-3 text-sm text-slate-600 line-clamp-2">
+              {labelDialog.product.name}
+            </p>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+              Quantity
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={9999}
+              value={labelDialogQty}
+              onChange={(e) => setLabelDialogQty(e.target.value)}
+              className="input w-full mb-4"
+              autoFocus
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLabelDialog(null)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmLabelDialog}
+                className="btn-primary"
+              >
+                Print
               </button>
             </div>
           </div>
