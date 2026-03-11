@@ -34,11 +34,24 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Serve generated invoice PDFs publicly at /invoices/INV-*.pdf
 const invoicesDir = path.join(projectRoot, 'invoices');
-// Ensure directory exists so static route is always registered
+// Ensure directory exists so route is always valid
 if (!fs.existsSync(invoicesDir)) {
   fs.mkdirSync(invoicesDir, { recursive: true });
 }
-app.use('/invoices', express.static(invoicesDir));
+
+// Force download when hitting /invoices/:fileName
+app.get('/invoices/:fileName', (req, res) => {
+  const fileName = req.params.fileName;
+  // Simple whitelist to avoid path traversal
+  if (!/^[A-Za-z0-9_.-]+$/.test(fileName)) {
+    return res.status(400).send('Invalid file name');
+  }
+  const fullPath = path.join(invoicesDir, fileName);
+  if (!fs.existsSync(fullPath)) {
+    return res.status(404).send('Invoice not found');
+  }
+  res.download(fullPath, fileName);
+});
 
 const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (fs.existsSync(frontendDist)) {
