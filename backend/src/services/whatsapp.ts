@@ -75,10 +75,10 @@ export async function sendInvoiceWhatsApp(
   }
 
   const baseUrl = INVOICE_BASE_URL.replace(/\/+$/, '');
-  const invoiceLink = `${baseUrl}/invoices/${encodeURIComponent(
-    invoice.invoiceNumber
-  )}.pdf`;
-  // const invoiceLink = `https://dayalsir.plan2automate.com/invoices/INV-1773225282422.pdf`;
+  // const invoiceLink = `${baseUrl}/invoices/${encodeURIComponent(
+  //   invoice.invoiceNumber
+  // )}.pdf`;
+  const invoiceLink = `https://dayalsir.plan2automate.com/invoices/INV-1773225282422.pdf`;
   
 
   const body = {
