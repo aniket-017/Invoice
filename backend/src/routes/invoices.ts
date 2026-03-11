@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { Invoice } from '../models/Invoice.js';
+import { authMiddleware, AuthPayload } from '../middleware/auth.js';
 
 const router = Router();
+
+router.use(authMiddleware);
 
 function getNextInvoiceNumber(): string {
   return 'INV-' + Date.now();
@@ -44,10 +47,13 @@ router.post('/', async (req, res) => {
     }
     const subtotal = items.reduce((sum: number, i: { amount: number }) => sum + Number(i.amount), 0);
     const total = subtotal + Number(tax);
+    const authUser = (req as typeof req & { user?: AuthPayload }).user;
     const invoice = await Invoice.create({
       customerId: customerId || null,
       invoiceNumber: getNextInvoiceNumber(),
       date: new Date(),
+      createdByEmail: authUser?.email || '',
+      createdByName: authUser?.name || '',
       subtotal,
       tax: Number(tax),
       total,

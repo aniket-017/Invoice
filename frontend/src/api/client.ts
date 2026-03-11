@@ -1,9 +1,15 @@
 const BASE = '/api';
+const TOKEN_KEY = 'auth_token';
+
+function getAuthHeaders(): Record<string, string> {
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders(), ...options?.headers },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -38,5 +44,35 @@ export const api = {
   },
   reports: {
     sales: (from?: string, to?: string) => request<{ summary: { totalSales: number; count: number }; byDay: { _id: string; total: number; count: number }[] }>(`/reports/sales${from || to ? '?' + new URLSearchParams({ ...(from && { from }), ...(to && { to }) }).toString() : ''}`),
+  },
+  auth: {
+    login: (email: string, password: string) =>
+      request<{ token: string; user: { id: string; email: string; name: string; role: string } }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }),
+    me: () =>
+      request<{ id: string; email: string; name: string; role: string }>('/auth/me'),
+  },
+  admin: {
+    login: (email: string, password: string) =>
+      request<{ token: string; user: { id: string; email: string; name: string; role: string } }>('/admin/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }),
+    createUser: (name: string, email: string, password: string, role?: 'user' | 'admin') =>
+      request<{ id: string; name: string; email: string; role: string }>('/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, role: role || 'user' }),
+      }),
+    listUsers: () =>
+      request<{ _id: string; name: string; email: string; role: string }[]>('/admin/users'),
+    updateUser: (id: string, body: { name: string; email: string; role: 'user' | 'admin' }) =>
+      request<{ _id: string; name: string; email: string; role: string }>(`/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    deleteUser: (id: string) =>
+      request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
   },
 };

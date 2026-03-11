@@ -13,41 +13,34 @@ import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 import dotenv from "dotenv";
 dotenv.config();
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-
 const PORT = process.env.PORT || 1970;
-
 app.use(cors());
 app.use(express.json());
-
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/customers', customersRouter);
 app.use('/api/invoices', invoicesRouter);
 app.use('/api/reports', reportsRouter);
-
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-
 const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
-  app.get('*', (_req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
-} else {
-  console.warn('frontend/dist not found – backend will serve API only.');
+    app.use(express.static(frontendDist));
+    app.get('*', (_req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
 }
-
+else {
+    console.warn('frontend/dist not found – backend will serve API only.');
+}
 async function start() {
-  await connectDb();
-  await seedAdmin();
-  app.listen(PORT, () => {
-    console.log(`Barcode Billing API running at http://localhost:${PORT}`);
-  });
+    await connectDb();
+    await seedAdmin();
+    app.listen(PORT, () => {
+        console.log(`Barcode Billing API running at http://localhost:${PORT}`);
+    });
 }
-
 start().catch((err) => {
-  console.error(err);
-  process.exit(1);
+    console.error(err);
+    process.exit(1);
 });
