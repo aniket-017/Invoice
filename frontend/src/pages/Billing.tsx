@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { api } from '../api/client';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import Toast from '../components/Toast';
@@ -17,6 +17,7 @@ export default function Billing() {
   const [customerId, setCustomerId] = useState<string>('');
   const [customers, setCustomers] = useState<{ _id: string; name: string; phone: string; email: string; address: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', address: '' });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -53,11 +54,31 @@ export default function Billing() {
     }
   };
 
-  const loadCustomers = async (query?: string) => {
+  const loadCustomers = useCallback(async (query?: string) => {
     const list = await api.customers.list(query || undefined);
     setCustomers(list);
     return list;
+  }, []);
+
+  // Load customer list on mount so it's always available without clicking "Load list"
+  useEffect(() => {
+    loadCustomers();
+  }, [loadCustomers]);
+
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleCustomerSearchChange = (value: string) => {
+    setCustomerSearch(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      loadCustomers(value || undefined);
+      searchDebounceRef.current = null;
+    }, 200);
   };
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
 
   const subtotal = cart.reduce((s, i) => s + i.amount, 0);
   const tax = 0;
@@ -168,7 +189,14 @@ export default function Billing() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold text-slate-700">Customer (optional)</h3>
             <div className="flex gap-2">
-              <button type="button" onClick={() => loadCustomers(customerSearch)} className="btn-ghost text-sm">
+              <button
+                type="button"
+                onClick={async () => {
+                  await loadCustomers(customerSearch);
+                  setCustomerDropdownOpen(true);
+                }}
+                className="btn-ghost text-sm"
+              >
                 Load list
               </button>
               <button type="button" onClick={openNewCustomer} className="btn-secondary text-sm">
@@ -179,28 +207,71 @@ export default function Billing() {
           <div className="space-y-2">
             <input
               type="search"
-              placeholder="Search by name, phone, email..."
+              placeholder="Search by name, mobile, email..."
               value={customerSearch}
-              onChange={async (e) => {
-                const value = e.target.value;
-                setCustomerSearch(value);
-                await loadCustomers(value);
+              onFocus={() => setCustomerDropdownOpen(true)}
+              onChange={(e) => {
+                handleCustomerSearchChange(e.target.value);
+                setCustomerDropdownOpen(true);
               }}
               className="input text-sm"
             />
-            <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="input"
-            >
-              <option value="">— None —</option>
-              {customers.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.name}
-                  {c.phone ? ` · ${c.phone}` : ''}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                className="input flex w-full items-center justify-between"
+                onClick={() => setCustomerDropdownOpen((open) => !open)}
+                onBlur={() => {
+                  // small delay so click on option still registers
+                  setTimeout(() => setCustomerDropdownOpen(false), 150);
+                }}
+              >
+                <span className={customerId ? '' : 'text-slate-400'}>
+                  {customerId
+                    ? (() => {
+                        const c = customers.find((x) => x._id === customerId);
+                        if (!c) return '— None —';
+                        return `${c.name}${c.phone ? ` · ${c.phone}` : ''}`;
+                      })()
+                    : '— None —'}
+                </span>
+                <span className="ml-2 text-xs text-slate-500">▼</span>
+              </button>
+              {customerDropdownOpen && customers.length > 0 && (
+                <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 text-sm shadow-lg">
+                  <button
+                    type="button"
+                    className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left hover:bg-slate-100"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setCustomerId('');
+                      setCustomerDropdownOpen(false);
+                    }}
+                  >
+                    — None —
+                  </button>
+                  {customers.map((c) => (
+                    <button
+                      type="button"
+                      key={c._id}
+                      className={`flex w-full cursor-pointer items-center px-3 py-1.5 text-left hover:bg-slate-100 ${
+                        c._id === customerId ? 'bg-primary-50 font-medium text-primary-700' : ''
+                      }`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setCustomerId(c._id);
+                        setCustomerDropdownOpen(false);
+                      }}
+                    >
+                      <span>
+                        {c.name}
+                        {c.phone ? ` · ${c.phone}` : ''}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

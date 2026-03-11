@@ -5,8 +5,16 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   try {
-    const q = (req.query.q as string) || '';
-    const filter = q ? { name: new RegExp(q, 'i') } : {};
+    const q = (req.query.q as string)?.trim() || '';
+    const filter = q
+      ? {
+          $or: [
+            { name: new RegExp(q, 'i') },
+            { phone: new RegExp(q, 'i') },
+            { email: new RegExp(q, 'i') },
+          ],
+        }
+      : {};
     const customers = await Customer.find(filter).sort({ createdAt: -1 }).lean();
     res.json(customers);
   } catch (e) {
