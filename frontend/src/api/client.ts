@@ -38,7 +38,20 @@ export const api = {
     delete: (id: string) => request<void>(`/customers/${id}`, { method: 'DELETE' }),
   },
   invoices: {
-    list: (from?: string, to?: string) => request<any[]>(`/invoices${from || to ? '?' + new URLSearchParams({ ...(from && { from }), ...(to && { to }) }).toString() : ''}`),
+    list: (from?: string, to?: string, page?: number, pageSize?: number) =>
+      request<any>(
+        `/invoices${
+          from || to || page || pageSize
+            ? '?' +
+              new URLSearchParams({
+                ...(from && { from }),
+                ...(to && { to }),
+                ...(page && { page: String(page) }),
+                ...(pageSize && { limit: String(pageSize) }),
+              }).toString()
+            : ''
+        }`,
+      ),
     get: (id: string) => request<any>(`/invoices/${id}`),
     create: (body: { customerId?: string; items: { productId: string; productName: string; barcode: string; quantity: number; unitPrice: number; amount: number }[]; tax?: number; notes?: string }) => request<any>('/invoices', { method: 'POST', body: JSON.stringify(body) }),
   },

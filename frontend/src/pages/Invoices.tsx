@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import Toast from '../components/Toast';
 
@@ -24,18 +24,24 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<Invoice | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.invoices.list(from || undefined, to || undefined);
-      setList(data);
+      const data = await api.invoices.list(from || undefined, to || undefined, page, pageSize);
+      setList(data.items ?? data);
+      setTotal(data.total ?? (Array.isArray(data) ? data.length : 0));
     } finally {
       setLoading(false);
     }
-  };
+  }, [from, to, page, pageSize]);
 
-  useEffect(() => { load(); }, [from, to]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const openDetail = async (id: string) => {
     try {
@@ -128,7 +134,7 @@ Chh. Shambhajinagar</div>
       <h2 className="text-2xl font-bold text-slate-800">Invoices</h2>
 
       <div className="card">
-        <div className="mb-4 flex flex-wrap gap-4">
+        <div className="mb-4 flex flex-wrap items-center gap-4">
           <input
             type="date"
             className="input w-40"
@@ -143,9 +149,32 @@ Chh. Shambhajinagar</div>
             onChange={(e) => setTo(e.target.value)}
             placeholder="To"
           />
-          <button type="button" onClick={load} className="btn-secondary px-4 py-2">
+          <button
+            type="button"
+            onClick={() => {
+              setPage(1);
+              load();
+            }}
+            className="btn-secondary px-4 py-2"
+          >
             Apply
           </button>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <span>Rows per page:</span>
+            <select
+              className="input w-20"
+              value={pageSize}
+              onChange={(e) => {
+                const nextSize = Number(e.target.value) || 10;
+                setPageSize(nextSize);
+                setPage(1);
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
         </div>
         {loading ? (
           <p className="text-slate-500">Loading…</p>
@@ -180,6 +209,36 @@ Chh. Shambhajinagar</div>
           </div>
         )}
         {list.length === 0 && !loading && <p className="mt-4 text-slate-500">No invoices in this range.</p>}
+        {list.length > 0 && (
+          <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+            <div>
+              Showing{' '}
+              <span className="font-medium">
+                {(page - 1) * pageSize + 1}-
+                {Math.min(page * pageSize, total || (page - 1) * pageSize + list.length)}
+              </span>{' '}
+              of <span className="font-medium">{total || list.length}</span> invoices
+            </div>
+            <div className="inline-flex gap-2">
+              <button
+                type="button"
+                className="btn-secondary px-3 py-1"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                className="btn-secondary px-3 py-1"
+                disabled={loading || (total ? page * pageSize >= total : list.length < pageSize)}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {detail && (

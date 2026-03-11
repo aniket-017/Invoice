@@ -16,14 +16,32 @@ router.get('/', async (req, res) => {
   try {
     const from = req.query.from as string | undefined;
     const to = req.query.to as string | undefined;
+    const page = Number(req.query.page ?? '1');
+    const limit = Number(req.query.limit ?? '10');
+    const pageNumber = Number.isFinite(page) && page > 0 ? page : 1;
+    const pageSize = Number.isFinite(limit) && limit > 0 && limit <= 200 ? limit : 10;
+
     const filter: Record<string, unknown> = {};
     if (from) filter.date = { ...((filter.date as object) || {}), $gte: new Date(from) };
     if (to) filter.date = { ...((filter.date as object) || {}), $lte: new Date(to) };
-    const invoices = await Invoice.find(filter)
-      .populate('customerId', 'name phone email address')
-      .sort({ date: -1 })
-      .lean();
-    res.json(invoices);
+
+    const [invoices, total] = await Promise.all([
+      Invoice.find(filter)
+        .populate('customerId', 'name phone email address')
+        .sort({ date: -1 })
+        .skip((pageNumber - 1) * pageSize)
+        .limit(pageSize)
+        .lean(),
+      Invoice.countDocuments(filter),
+    ]);
+
+    res.json({
+      items: invoices,
+      total,
+      page: pageNumber,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    });
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
   }
