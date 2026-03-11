@@ -15,6 +15,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.join(__dirname, '..');
 const app = express();
 
 const PORT = process.env.PORT || 1970;
@@ -32,10 +33,12 @@ app.use('/api/reports', reportsRouter);
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Serve generated invoice PDFs publicly at /invoices/INV-*.pdf
-const invoicesDir = path.join(process.cwd(), 'invoices');
-if (fs.existsSync(invoicesDir)) {
-  app.use('/invoices', express.static(invoicesDir));
+const invoicesDir = path.join(projectRoot, 'invoices');
+// Ensure directory exists so static route is always registered
+if (!fs.existsSync(invoicesDir)) {
+  fs.mkdirSync(invoicesDir, { recursive: true });
 }
+app.use('/invoices', express.static(invoicesDir));
 
 const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (fs.existsSync(frontendDist)) {

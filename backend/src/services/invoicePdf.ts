@@ -1,6 +1,10 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.join(__dirname, '..');
 
 type InvoiceItem = {
   productName: string;
@@ -29,7 +33,7 @@ type InvoiceForPdf = {
 };
 
 export async function generateInvoicePdf(invoice: InvoiceForPdf): Promise<string> {
-  const invoicesDir = path.join(process.cwd(), 'invoices');
+  const invoicesDir = path.join(projectRoot, 'invoices');
   await fs.promises.mkdir(invoicesDir, { recursive: true });
 
   const safeNumber = invoice.invoiceNumber.replace(/[^A-Za-z0-9_-]/g, '_');
