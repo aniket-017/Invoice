@@ -42,54 +42,99 @@ export async function generateInvoicePdf(invoice: InvoiceForPdf): Promise<string
 
     doc.pipe(stream);
 
-    doc.fontSize(20).text('Invoice', { align: 'center' });
-    doc.moveDown();
+    // Layout similar to existing print design
+    const pageWidth = doc.page.width;
+    const margin = 40;
+    let y = margin;
 
+    // Store header
+    doc.fontSize(18).text('Khatu Shyam Books Store', margin, y, { align: 'left' });
+    doc.fontSize(9);
+    y += 22;
+    doc.text('Mhada Colony, Behind A S Club', margin, y);
+    y += 12;
+    doc.text('Chh. Shambhajinagar', margin, y);
+
+    // Contact on right
+    doc.fontSize(10).text('Contact', pageWidth - margin - 120, margin, { align: 'right', width: 120 });
+    doc.fontSize(9).text('+91 8421630880', pageWidth - margin - 120, margin + 14, { align: 'right', width: 120 });
+
+    // Separator line
+    y += 24;
+    doc.moveTo(margin, y).lineTo(pageWidth - margin, y).stroke();
+    y += 16;
+
+    // Invoice title + meta
+    doc.fontSize(14).text(`Invoice ${invoice.invoiceNumber}`, margin, y);
+    y += 20;
     doc.fontSize(10);
-    doc.text(`Invoice No: ${invoice.invoiceNumber}`);
-    doc.text(`Date: ${new Date(invoice.date).toLocaleString()}`);
+    doc.text(`Date & time: ${new Date(invoice.date).toLocaleString()}`, margin, y);
+    y += 14;
     if (invoice.createdByName) {
-      doc.text(`Created by: ${invoice.createdByName}`);
+      doc.text(`Created by: ${invoice.createdByName}`, margin, y);
+      y += 18;
+    } else {
+      y += 4;
     }
-    doc.moveDown();
 
+    // Customer section
     if (invoice.customerId) {
-      doc.text('Bill To:');
-      if (invoice.customerId.name) doc.text(invoice.customerId.name);
-      if (invoice.customerId.phone) doc.text(`Phone: ${invoice.customerId.phone}`);
-      if (invoice.customerId.email) doc.text(`Email: ${invoice.customerId.email}`);
-      if (invoice.customerId.address) doc.text(invoice.customerId.address);
-      doc.moveDown();
+      doc.fontSize(10).text('Billed to:', margin, y);
+      y += 14;
+      if (invoice.customerId.name) {
+        doc.fontSize(11).text(invoice.customerId.name, margin, y, { bold: true });
+        y += 14;
+      }
+      if (invoice.customerId.phone) {
+        doc.fontSize(10).text(invoice.customerId.phone, margin, y);
+        y += 12;
+      }
+      const addrParts: string[] = [];
+      if (invoice.customerId.address) addrParts.push(invoice.customerId.address);
+      if (invoice.customerId.email) addrParts.push(invoice.customerId.email);
+      if (addrParts.length) {
+        doc.text(addrParts.join(' · '), margin, y);
+        y += 16;
+      }
     }
 
-    doc.fontSize(11).text('Items', { underline: true });
-    doc.moveDown(0.5);
+    y += 8;
 
-    doc.fontSize(10);
-    doc.text('Product', { continued: true, width: 200 });
-    doc.text('Qty', { continued: true, width: 60, align: 'right' });
-    doc.text('Price', { continued: true, width: 80, align: 'right' });
-    doc.text('Amount', { width: 80, align: 'right' });
-    doc.moveDown(0.5);
+    // Items table header
+    const colItem = margin;
+    const colQty = margin + 230;
+    const colPrice = margin + 300;
+    const colAmount = margin + 390;
 
+    doc.fontSize(10).text('Item', colItem, y);
+    doc.text('Qty', colQty, y, { width: 40, align: 'right' });
+    doc.text('Price (INR)', colPrice, y, { width: 70, align: 'right' });
+    doc.text('Amount (INR)', colAmount, y, { width: 80, align: 'right' });
+
+    y += 4;
+    doc.moveTo(margin, y + 4).lineTo(pageWidth - margin, y + 4).stroke();
+    y += 10;
+
+    // Items rows
     invoice.items.forEach((item) => {
-      doc.text(item.productName, { continued: true, width: 200 });
-      doc.text(String(item.quantity), { continued: true, width: 60, align: 'right' });
-      doc.text(item.unitPrice.toFixed(2), { continued: true, width: 80, align: 'right' });
-      doc.text(item.amount.toFixed(2), { width: 80, align: 'right' });
+      doc.fontSize(10).text(item.productName, colItem, y, { width: 220 });
+      doc.text(String(item.quantity), colQty, y, { width: 40, align: 'right' });
+      doc.text(item.unitPrice.toFixed(2), colPrice, y, { width: 70, align: 'right' });
+      doc.text(item.amount.toFixed(2), colAmount, y, { width: 80, align: 'right' });
+      y += 16;
     });
 
-    doc.moveDown();
-    doc.text(`Subtotal: ${invoice.subtotal.toFixed(2)}`, { align: 'right' });
-    if (invoice.tax) {
-      doc.text(`Tax: ${invoice.tax.toFixed(2)}`, { align: 'right' });
-    }
-    doc.text(`Total: ${invoice.total.toFixed(2)}`, { align: 'right' });
+    // Totals line
+    y += 8;
+    const totalsText = `Subtotal: ${invoice.subtotal.toFixed(2)} INR | Total: ${invoice.total.toFixed(2)} INR`;
+    doc.fontSize(10).text(totalsText, margin, y, { align: 'right', width: pageWidth - margin * 2 });
 
+    // Notes
     if (invoice.notes) {
-      doc.moveDown();
-      doc.text('Notes:');
-      doc.text(invoice.notes);
+      y += 20;
+      doc.fontSize(10).text('Notes:', margin, y);
+      y += 12;
+      doc.text(invoice.notes, margin, y, { width: pageWidth - margin * 2 });
     }
 
     doc.end();
