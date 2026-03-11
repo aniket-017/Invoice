@@ -6,4 +6,6 @@ backend/.env
 frontend/dist
 frontend/build
 backend/invoices/*
+backend/dist
+backend/src/invoices/*
 

@@ -62,7 +62,9 @@ export async function sendInvoiceWhatsApp(
   }
 
   const customer = invoice.customerId;
+  console.log("customer",customer);
   const customerPhone = customer?.phone;
+  console.log("customerPhone",customerPhone);
   const to = normalizeIndianPhone(customerPhone || '');
 
   if (!to) {
@@ -76,6 +78,8 @@ export async function sendInvoiceWhatsApp(
   const invoiceLink = `${baseUrl}/invoices/${encodeURIComponent(
     invoice.invoiceNumber
   )}.pdf`;
+  // const invoiceLink = `https://dayalsir.plan2automate.com/invoices/INV-1773225282422.pdf`;
+  
 
   const body = {
     messaging_product: 'whatsapp',

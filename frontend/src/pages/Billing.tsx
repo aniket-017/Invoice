@@ -151,6 +151,31 @@ export default function Billing() {
     }
   };
 
+  const completeSaleAndSendInvoice = async () => {
+    if (cart.length === 0) {
+      setToast({ message: 'Cart is empty', type: 'error' });
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.invoices.create({
+        customerId: customerId || undefined,
+        items: cart,
+        tax,
+        notes: '',
+        // backend checks this flag to decide whether to send WhatsApp
+        sendWhatsApp: true,
+      } as any);
+      setToast({ message: 'Sale completed and invoice sent on WhatsApp', type: 'success' });
+      setCart([]);
+      setCustomerId('');
+    } catch (e) {
+      setToast({ message: (e as Error).message, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-800">Billing</h2>
@@ -340,12 +365,20 @@ export default function Billing() {
                 )}
                 <span className="ml-4 text-slate-600">Total:</span> <span className="font-bold text-primary-700">{total.toFixed(2)}</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={clearCart} className="btn-secondary px-4 py-2">
                   Clear cart
                 </button>
-                <button type="button" onClick={completeSale} disabled={loading} className="btn-primary px-6 py-2">
+                <button type="button" onClick={completeSale} disabled={loading} className="btn-secondary px-6 py-2">
                   {loading ? 'Processing…' : 'Complete sale'}
+                </button>
+                <button
+                  type="button"
+                  onClick={completeSaleAndSendInvoice}
+                  disabled={loading}
+                  className="btn-primary px-6 py-2"
+                >
+                  {loading ? 'Processing…' : 'Complete sale and send invoice'}
                 </button>
               </div>
             </div>

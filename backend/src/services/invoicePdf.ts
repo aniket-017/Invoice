@@ -4,7 +4,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.join(__dirname, '..');
+// Point projectRoot at the backend folder so PDFs are written to backend/invoices,
+// which is what the Express server exposes publicly.
+const projectRoot = path.join(__dirname, '..', '..');
 
 type InvoiceItem = {
   productName: string;

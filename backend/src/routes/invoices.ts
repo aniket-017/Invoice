@@ -43,7 +43,13 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { customerId, items, tax = 0, notes = '' } = req.body;
+    const { customerId, items, tax = 0, notes = '', sendWhatsApp = false } = req.body as {
+      customerId?: string;
+      items: { productId: string; productName: string; barcode: string; quantity: number; unitPrice: number; amount: number }[];
+      tax?: number;
+      notes?: string;
+      sendWhatsApp?: boolean;
+    };
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'items array is required' });
     }
@@ -78,10 +84,12 @@ router.post('/', async (req, res) => {
       } catch (pdfError) {
         console.error('Failed to generate invoice PDF', pdfError);
       }
-      try {
-        await sendInvoiceWhatsApp(populated as any);
-      } catch (waError) {
-        console.error('Failed to send invoice via WhatsApp', waError);
+      if (sendWhatsApp) {
+        try {
+          await sendInvoiceWhatsApp(populated as any);
+        } catch (waError) {
+          console.error('Failed to send invoice via WhatsApp', waError);
+        }
       }
     }
     res.status(201).json(populated);
