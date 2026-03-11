@@ -100,28 +100,34 @@ export async function generateInvoicePdf(invoice: InvoiceForPdf): Promise<string
 
     y += 8;
 
-    // Items table header
+    // Items table header with clearer typography
     const colItem = margin;
     const colQty = margin + 230;
     const colPrice = margin + 300;
     const colAmount = margin + 390;
 
-    doc.fontSize(10).text('Item', colItem, y);
+    const headerHeight = 18;
+    const rowHeight = 20;
+
+    doc.fontSize(10);
+    doc.text('Item', colItem, y, { width: 220 });
     doc.text('Qty', colQty, y, { width: 40, align: 'right' });
     doc.text('Price (INR)', colPrice, y, { width: 70, align: 'right' });
     doc.text('Amount (INR)', colAmount, y, { width: 80, align: 'right' });
 
-    y += 4;
-    doc.moveTo(margin, y + 4).lineTo(pageWidth - margin, y + 4).stroke();
-    y += 10;
+    // Header underline
+    y += headerHeight;
+    doc.moveTo(margin, y).lineTo(pageWidth - margin, y).stroke();
 
-    // Items rows
+    // Items rows with even spacing and row lines
     invoice.items.forEach((item) => {
+      y += 6;
       doc.fontSize(10).text(item.productName, colItem, y, { width: 220 });
       doc.text(String(item.quantity), colQty, y, { width: 40, align: 'right' });
       doc.text(item.unitPrice.toFixed(2), colPrice, y, { width: 70, align: 'right' });
       doc.text(item.amount.toFixed(2), colAmount, y, { width: 80, align: 'right' });
-      y += 16;
+      y += rowHeight - 6;
+      doc.moveTo(margin, y).lineTo(pageWidth - margin, y).stroke();
     });
 
     // Totals line
