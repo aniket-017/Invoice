@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Invoice } from '../models/Invoice.js';
 import { generateInvoicePdf } from '../services/invoicePdf.js';
+import { sendInvoiceWhatsApp } from '../services/whatsapp.js';
 import { authMiddleware, AuthPayload } from '../middleware/auth.js';
 
 const router = Router();
@@ -76,6 +77,11 @@ router.post('/', async (req, res) => {
         await generateInvoicePdf(populated as any);
       } catch (pdfError) {
         console.error('Failed to generate invoice PDF', pdfError);
+      }
+      try {
+        await sendInvoiceWhatsApp(populated as any);
+      } catch (waError) {
+        console.error('Failed to send invoice via WhatsApp', waError);
       }
     }
     res.status(201).json(populated);
