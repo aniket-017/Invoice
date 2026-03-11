@@ -73,6 +73,7 @@ jobs:
            echo "📦 Installing backend dependencies"
            cd ~/Invoice/backend
            npm install
+           npm run build
 
            cd ../frontend
            echo "📦 Installing frontend dependencies"

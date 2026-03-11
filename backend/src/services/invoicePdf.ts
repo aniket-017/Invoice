@@ -86,7 +86,7 @@ export async function generateInvoicePdf(invoice: InvoiceForPdf): Promise<string
       doc.fontSize(10).text('Billed to:', margin, y);
       y += 14;
       if (invoice.customerId.name) {
-        doc.fontSize(11).text(invoice.customerId.name, margin, y, { bold: true });
+        doc.fontSize(11).text(invoice.customerId.name, margin, y);
         y += 14;
       }
       if (invoice.customerId.phone) {
