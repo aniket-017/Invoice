@@ -18,31 +18,24 @@ A full-featured barcode billing application with product and customer management
 ## Quick start (web)
 
 1. Install dependencies (from project root):
-
-   ```bash
+  ```bash
    npm run postinstall
-   ```
-
+  ```
 2. Start MongoDB if not already running.
-
 3. Start backend and frontend:
-
-   ```bash
+  ```bash
    npm run dev
-   ```
-
+  ```
 4. Open [http://localhost:5173](http://localhost:5173) in your browser. The backend API runs at [http://localhost:3001](http://localhost:3001).
 
 ## Desktop (Electron)
 
 - **Dev**: Run `npm run dev`, then in another terminal run `npm run electron`. The Electron window will load the Vite dev server (port 5173).
 - **Production**: Build frontend and backend, then run Electron with the backend serving the app:
-
   ```bash
   npm run build
   NODE_ENV=production npm run electron
   ```
-
   (Electron will start the backend and open http://localhost:3001.)
 
 ## Environment
@@ -58,4 +51,4 @@ A full-featured barcode billing application with product and customer management
 
 ## License
 
-MIT
+Aniket Khillare
